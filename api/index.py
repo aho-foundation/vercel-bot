@@ -8,7 +8,10 @@ from sanic.response import json, text
 app = Sanic()
 WEBHOOK = os.environ.get('VERCEL_URL')
 CHAT_ID = os.environ.get('CHAT_ID').replace("-", "-100")
-WELCOME_MSG = 'Добро пожаловть домой! Эта открытая беседа о Радужных Собраниях на русском языке. Пожалуйста, чтите Традиции и берегите друг друга.'
+WELCOME_MSG = os.environ.get('WELCOME_MSG') or 'Welcome! Press the wright button'
+
+BUTTON_OK = os.environ.get('BUTTON_OK') or 'Ok'
+BUTTON_NO = os.environ.get('BUTTON_NO') or 'No'
 
 newcomers = {}
 
@@ -35,8 +38,8 @@ async def handle(req):
                 reply_markup = {
                     "inline_keyboard": [
                         [
-                            {"text": "Всё понятно", "callback_data": "Всё понятно"},
-                            {"text": "Доброе утро", "callback_data": "Доброе утро"}
+                            {"text": BUTTON_NO, "callback_data": BUTTON_NO},
+                            {"text": BUTTON_OK, "callback_data": BUTTON_OK}
                         ]
                     ]
                 }
@@ -53,15 +56,15 @@ async def handle(req):
                     if data.startswith('newcomer'):
                         if 'text' in msg:
                             answer = msg['text']
-                            if 'доброе утро' in answer.lower():
+                            if BUTTON_OK.lower() in answer.lower():
                                 del newcomers[member_id]
                             else:
                                 delete_message(msg['message_id'])
                         else:
                             callback_data = update['callback_query']['data']  
-                            if callback_data == 'Всё понятно':
+                            if callback_data == BUTTON_NO:
                                 ban_member(member_id, chat_id)
-                            elif callback_data == 'Доброе утро':
+                            elif callback_data == BUTTON_OK:
                                 del newcomers[member_id]
                                 delete_message(CHAT_ID, data.replace('newcomer', ''))
     except Exception:
