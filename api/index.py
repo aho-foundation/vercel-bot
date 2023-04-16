@@ -78,7 +78,6 @@ async def handle(req):
                                 print(r.json())
                     else:
                         print(f'old member speak {msg["text"]}')
-                        print(newcomers)  # debug only
         if 'callback_query' in update:
             callback_query = update['callback_query']
             chat_id = str(callback_query['message']['chat']['id'])
