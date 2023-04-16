@@ -7,15 +7,16 @@ apiBase = f"https://api.telegram.org/bot{TOKEN}/"
 
 
 def register_webhook(url):
-    return requests.get(
+    r = requests.get(
         apiBase + f'setWebhook?url={url}'
     )
+    return r
 
 
-def delete_message(cid, mid):
-    return requests.post(
-        apiBase + f"deleteMessage?chat_id={cid}&message_id={mid}"
-    )
+def delete_message(cid: str, mid: str):
+    url = apiBase + f"deleteMessage?chat_id={cid}&message_id={mid}"
+    r = requests.post(url)
+    return r
 
 
 def send_message(cid, body, reply_to=None, reply_markup=None):
