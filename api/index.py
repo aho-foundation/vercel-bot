@@ -54,22 +54,24 @@ async def handle(req):
             elif 'text' in msg:
                 chat_id = str(msg['chat']['id'])
                 member_id = str(msg['from']['id'])
-                data = newcomers[member_id]
-                if data:
-                    if data.startswith('newcomer'):
-                        if msg:
-                            answer = msg['text']
-                            if BUTTON_OK.lower() in answer.lower():
-                                del newcomers[member_id]
-                            else:
-                                delete_message(msg['message_id'])
+                if member_id in newcomers:
+                    if newcomers[member_id].startswith('newcomer'):
+                        answer = msg['text']
+                        if BUTTON_OK.lower() in answer.lower():
+                            del newcomers[member_id]
                         else:
-                            callback_data = update['callback_query']['data']  
-                            if callback_data == BUTTON_NO:
-                                ban_member(member_id, chat_id)
-                            elif callback_data == BUTTON_OK:
-                                del newcomers[member_id]
-                                delete_message(CHAT_ID, data.replace('newcomer', ''))
+                            delete_message(msg['message_id'])
+        if 'callback_query' in update:
+            msg = update['callback_query']
+            chat_id = str(msg['message']['chat']['id'])
+            if chat_id == CHAT_ID:
+                member_id = str(msg['from']['id'])
+                callback_data = msg['data']  
+                if callback_data == BUTTON_NO:
+                    ban_member(member_id, CHAT_ID)
+                elif callback_data == BUTTON_OK:
+                    del newcomers[member_id]
+                    delete_message(CHAT_ID, newcomers[member_id].replace('newcomer', ''))
     except Exception:
         pass
     return text('ok')
