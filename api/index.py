@@ -57,7 +57,7 @@ async def handle(req):
                     )
                     welcome_msg_id = r.json()['result']['message_id']
                     print(f'welcome message id: {welcome_msg_id}')
-                    newcomers[member_id] = f'newcomer{welcome_msg_id}'
+                    newcomers[member_id] = f'newcomer:{msg["message_id"]}:{welcome_msg_id}'
                 elif 'text' in msg:
                     chat_id = str(msg['chat']['id'])
                     member_id = str(msg['from']['id'])
@@ -67,13 +67,13 @@ async def handle(req):
                             print('watched newcomer')
                             answer = msg['text']
                             if BUTTON_OK.lower() in answer.lower():
-                                print('found answer')
-                                print('deleting welcome msg')
-                                r = delete_message(CHAT_ID, newcomers[member_id].replace('newcomer', ''))
+                                print('found answer, cleanup')
+                                [_, enter_msg, welcome_msg] = newcomers[member_id].split(':')
+                                r = delete_message(CHAT_ID, welcome_msg)
                                 print(r.json())
                                 newcomers[member_id] = None
                             else:
-                                print('deleting some message')
+                                print('remove some message')
                                 r = delete_message(CHAT_ID, msg['message_id'])
                                 print(r.json())
                     else:
@@ -87,16 +87,20 @@ async def handle(req):
                 member_id = str(callback_query['from']['id'])
                 callback_data = callback_query['data']  
                 if callback_data == BUTTON_NO:
-                    print('deleting welcome msg')
-                    r = delete_message(CHAT_ID, newcomers[member_id].replace('newcomer', ''))
+                    print('wrong answer, cleanup')
+                    [_, enter_msg, welcome_msg] = newcomers[member_id].split(':')
+                    r = delete_message(CHAT_ID, enter_msg)
+                    print(r.json())
+                    r = delete_message(CHAT_ID, welcome_msg)
                     print(r.json())
                     newcomers[member_id] = None
-                    print('wrong answer')
+                    print('ban member')
                     r = ban_member(CHAT_ID, member_id)
                     print(r.json())
                 elif callback_data == BUTTON_OK:
-                    print('proper answer')
-                    r = delete_message(CHAT_ID, newcomers[member_id].replace('newcomer', ''))
+                    print('proper answer, cleanup')
+                    [_, enter_msg, welcome_msg] = newcomers[member_id].split(':')
+                    r = delete_message(CHAT_ID, welcome_msg)
                     print(r.json())
                     newcomers[member_id] = None
     except Exception:
