@@ -29,11 +29,12 @@ async def handle(req):
     try:
         update = req.json
         print(update)
-        msg = update.get('message', update.get('my_chat_member'))
-        if msg['chat']['id'] == CHAT_ID:
-            chat_id = msg['chat']['id']
-            member_id = msg['user']['id']
-            if msg['chat']['type'] == 'new_chat_member':
+        msgdata = update.get('message', update.get('my_chat_member'))
+        if str(msgdata['chat']['id']) == CHAT_ID:
+            chat_id = str(msg['chat']['id'])
+            member_id = str(msg['user']['id'])
+            if msgdata.get('new_chat_member'):
+                msg = msgdata.get('new_chat_member')
                 print(f'new member {member_id}')
                 newcomers[member_id] = 'newcomer'
                 reply_markup = {
@@ -51,7 +52,8 @@ async def handle(req):
                     reply_markup=reply_markup
                 )
                 newcomers[member_id] = 'newcomer' + welcome_msg_id
-            elif msg['chat']['type'] == 'text':
+            elif msgdata.get('text'):
+                msg = msgdata.get('text')
                 data = newcomers[member_id]
                 if data:
                     if data.startswith('newcomer'):
