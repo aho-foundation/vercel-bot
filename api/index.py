@@ -34,6 +34,7 @@ async def handle(req):
             chat_id = msg['chat']['id']
             member_id = msg['user']['id']
             if msg['chat']['type'] == 'new_chat_member':
+                print(f'new member {member_id}')
                 newcomers[member_id] = 'newcomer'
                 reply_markup = {
                     "inline_keyboard": [
