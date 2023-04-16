@@ -6,9 +6,10 @@ from sanic.response import json, text
 
 
 app = Sanic()
+
 WEBHOOK = os.environ.get('VERCEL_URL')
 CHAT_ID = os.environ.get('CHAT_ID').replace("-", "-100")
-WELCOME_MSG = os.environ.get('WELCOME_MSG') or 'Welcome! Press the wright button'
+WELCOME_MSG = os.environ.get('WELCOME_MSG') or 'Welcome! Press the button'
 
 BUTTON_OK = os.environ.get('BUTTON_OK') or 'Ok'
 BUTTON_NO = os.environ.get('BUTTON_NO') or 'No'
@@ -28,9 +29,10 @@ async def handle(req):
     print(req)
     try:
         update = req.json
-        print(update)
+        # print(update)
         msg = update.get('message', update.get('my_chat_member'))
         if str(msg['chat']['id']) == CHAT_ID:
+            print(f'message in chat')
             if 'new_chat_member' in msg:
                 chat_id = str(msg['chat']['id'])
                 member_id = str(msg['new_chat_member']['id'])
@@ -62,11 +64,12 @@ async def handle(req):
                         else:
                             delete_message(msg['message_id'])
         if 'callback_query' in update:
-            msg = update['callback_query']
-            chat_id = str(msg['message']['chat']['id'])
+            print(f'callback_query')
+            callback_query = update['callback_query']
+            chat_id = str(callback_query['message']['chat']['id'])
             if chat_id == CHAT_ID:
-                member_id = str(msg['from']['id'])
-                callback_data = msg['data']  
+                member_id = str(callback_query['from']['id'])
+                callback_data = callback_query['data']  
                 if callback_data == BUTTON_NO:
                     ban_member(member_id, CHAT_ID)
                 elif callback_data == BUTTON_OK:
