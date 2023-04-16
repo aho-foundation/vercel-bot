@@ -29,7 +29,7 @@ async def handle(req):
     try:
         update = req.json
         print(update)
-        msg = update.get('message')
+        msg = update.get('message', update.get('my_chat_member'))
         if msg['chat']['id'] == CHAT_ID:
             chat_id = msg['chat']['id']
             member_id = msg['user']['id']
