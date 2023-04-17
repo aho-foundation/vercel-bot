@@ -48,6 +48,12 @@ async def handle(req):
                 r = forward_message(cid, mid, FEEDBACK_CHAT_ID)
                 print(r.json())
                 storage.set(f'fbk-{cid}-{mid}', r['id'])
+            elif str(msg['chat']['id']) == FEEDBACK_CHAT_ID:
+                print(f'handle answer from support')
+                private_chat_id = str(msg['reply_to_message']['from']['id'])
+                replied_msg_id = str(msg['reply_to_message']['message_id'])
+                r = send_message(private_chat_id, msg['body'], reply_to=replied_msg_id)
+                print(r.json())
             elif str(msg['chat']['id']) == CHAT_ID:
                 print(f'message in chat')
                 if 'new_chat_member' in msg:
@@ -83,6 +89,8 @@ async def handle(req):
 
                 elif 'left_chat_member' in msg:
                     member_id = msg["left_chat_member"]["id"]
+
+                    # read member session
                     s = storage.get(f'usr-{member_id}')
                     if s:
                         s = codec.parse(s)
@@ -132,6 +140,8 @@ async def handle(req):
                 if reply_owner == member_id:
                     print(update)
                     print(f'callback_query in {CHAT_ID}')
+                    
+                    # read session
                     s = storage.get(f'usr-{member_id}')
                     if s:
                         s = codec.parse(s)
@@ -148,7 +158,10 @@ async def handle(req):
                         print(r.json())
                         r = delete_message(CHAT_ID, welcome_msg_id)
                         print(r.json())
+
+                        # remove banned member session
                         storage.delete(f'usr-{member_id}')
+
                         print('ban member')
                         r = ban_member(CHAT_ID, member_id)
                         print(r.json())
@@ -157,6 +170,8 @@ async def handle(req):
                         r = delete_message(CHAT_ID, welcome_msg_id)
                         print(r.json())
                         s['newcomer'] = False
+
+                        # store new member session
                         storage.set(f'usr-{member_id}', codec.dumps(s))
     except Exception:
         pass
