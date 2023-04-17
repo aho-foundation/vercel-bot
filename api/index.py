@@ -12,6 +12,7 @@ CHAT_ID = os.environ.get('CHAT_ID').replace("-", "-100")
 WELCOME_MSG = os.environ.get('WELCOME_MSG') or 'Welcome! Press the button'
 
 BUTTON_OK = os.environ.get('BUTTON_OK') or 'Ok'
+BUTTON_OK2 = os.environ.get('BUTTON_OK2') or 'I see'
 BUTTON_NO = os.environ.get('BUTTON_NO') or 'No'
 
 newcomers = {}
@@ -66,7 +67,7 @@ async def handle(req):
                         if newcomers[member_id].startswith('newcomer'):
                             print('watched newcomer')
                             answer = msg['text']
-                            if BUTTON_OK.lower() in answer.lower():
+                            if BUTTON_OK.lower() in answer.lower() or BUTTON_OK2.lower() in answer.lower():
                                 print('found answer, cleanup')
                                 [_, enter_msg, welcome_msg] = newcomers[member_id].split(':')
                                 r = delete_message(CHAT_ID, welcome_msg)
