@@ -3,9 +3,12 @@ import os
 from tgbot.rest import delete_message, register_webhook, send_message, ban_member, forward_message
 from sanic import Sanic
 from sanic.response import json, text
-
+import redis
 
 app = Sanic()
+
+REDIS_URL = os.environ.get('REDIS_URL') or 'redis://localhost:6379'
+storage = redis.from_url(REDIS_URL)  # сохраняет сессии и пересылаемые сообщения между перезагрузками
 
 WEBHOOK = os.environ.get('VERCEL_URL')
 CHAT_ID = os.environ.get('CHAT_ID').replace("-", "-100")
@@ -17,9 +20,6 @@ BUTTON_NO = os.environ.get('BUTTON_NO') or 'No'
 
 FEEDBACK_CHAT_ID = os.environ.get('FEEDBACK_CHAT_ID').replace("-", "-100")
 
-# runtime storages
-forwarded_ids = {}
-newcomers = {}
 app.config.REGISTERED = False
 
 
@@ -29,7 +29,8 @@ async def register(req):
         r = register_webhook(WEBHOOK)
         print(f'\n\t\t\tWEBHOOK REGISTERED:\n{r.json()}')
         app.config.REGISTERED = True
-    return json(r.json())
+        return json(r.json())
+    return text('skipped')
 
 
 @app.post('/')
@@ -37,90 +38,107 @@ async def handle(req):
     print(req)
     try:
         update = req.json
-        print(update)
-        msg = update.get('message', update.get('my_chat_member'))
-        if msg:
+        if 'message' in update:
+            print(update)
+            msg = update.get('message', update.get('edited_message'))
             if msg['chat']['type'] == 'private':
-                if not msg:
-                    msg = update['edited_message']
-                    mid = msg['message_id']
-                    cid = msg['chat']['id']
-                    delete_message(FEEDBACK_CHAT_ID, forwarded_ids[(cid, mid)])
                 mid = msg['message_id']
                 cid = msg['chat']['id']
-                body = msg['text']
                 r = forward_message(cid, mid, FEEDBACK_CHAT_ID)
-                print(r.json)
-                forwarded_ids[(cid,mid)] = r['id']
+                print(r.json())
+                storage.set(f'fbk-{cid}-{mid}', r['id'])
             elif str(msg['chat']['id']) == CHAT_ID:
                 print(f'message in chat')
                 if 'new_chat_member' in msg:
                     chat_id = str(msg['chat']['id'])
+                    from_id = str(msg['from']['id'])
                     member_id = str(msg['new_chat_member']['id'])
-                    print(f'new member {member_id}')
-                    reply_markup = {
-                        "inline_keyboard": [
-                            [
-                                {"text": BUTTON_NO, "callback_data": BUTTON_NO},
-                                {"text": BUTTON_OK, "callback_data": BUTTON_OK}
-                            ]
-                        ]
+                    s = { 
+                        "enter_id": msg['message_id']
                     }
-                    r = send_message(
-                        chat_id,
-                        WELCOME_MSG,    
-                        reply_to=msg['message_id'],
-                        reply_markup=reply_markup
-                    )
-                    welcome_msg_id = r.json()['result']['message_id']
-                    print(f'welcome message id: {welcome_msg_id}')
-                    newcomers[member_id] = f'newcomer:{msg["message_id"]}:{welcome_msg_id}'
+                    if from_id == member_id:
+                        print(f'new self-joined member {member_id}')
+                        reply_markup = {
+                            "inline_keyboard": [
+                                [
+                                    {"text": BUTTON_NO, "callback_data": BUTTON_NO},
+                                    {"text": BUTTON_OK, "callback_data": BUTTON_OK}
+                                ]
+                            ]
+                        }
+                        r = send_message(
+                            chat_id,
+                            WELCOME_MSG,    
+                            reply_to=msg['message_id'],
+                            reply_markup=reply_markup
+                        )
+                        welcome_msg_id = r.json()['result']['message_id']
+                        print(f'welcome message id: {welcome_msg_id}')
+                        s["newcomer"] = True,
+                        s["welcome_id"] = welcome_msg_id
+                    else:
+                        s['newcomer'] = False
+
+                    # create session
+                    storage.set(f'usr-{member_id}', json.dumps(s))
+
                 elif 'text' in msg:
                     chat_id = str(msg['chat']['id'])
                     member_id = str(msg['from']['id'])
-                    if member_id in newcomers:
-                        print(f'new member speak {msg["text"]}')
-                        if newcomers[member_id].startswith('newcomer'):
-                            print('watched newcomer')
+
+                    # check is author is selfjoined newcomer
+                    author = storage.get(f'usr-{member_id}')
+
+                    if author:
+                        author = json.parse(author)
+                        if author.get("newcomer"):
+                            print(f'new member speaks {msg["text"]}')
                             answer = msg['text']
-                            if BUTTON_OK.lower() in answer.lower() or BUTTON_OK2.lower() in answer.lower():
+                            if BUTTON_OK.lower() in answer.lower() or \
+                                BUTTON_OK2.lower() in answer.lower():
                                 print('found answer, cleanup')
-                                [_, enter_msg, welcome_msg] = newcomers[member_id].split(':')
-                                r = delete_message(CHAT_ID, welcome_msg)
+                                r = delete_message(CHAT_ID, author["welcome_id"])
                                 print(r.json())
-                                newcomers[member_id] = None
+                                author["newcomer"] = False
+
+                                # set author as not a newcomer
+                                storage.set(f'usr-{member_id}', json.dumps(author))
+
                             else:
                                 print('remove some message')
                                 r = delete_message(CHAT_ID, msg['message_id'])
                                 print(r.json())
-                    else:
-                        print(f'old member speak {msg["text"]}')
+                        else:
+                            print(f'old member speaks {msg["text"]}')
         if 'callback_query' in update:
             callback_query = update['callback_query']
             chat_id = str(callback_query['message']['chat']['id'])
             if chat_id == CHAT_ID:
-                print(f'callback_query in {CHAT_ID}')
                 member_id = str(callback_query['from']['id'])
                 callback_data = callback_query['data']
                 reply_owner = str(callback_query['message']['reply_to_message']['from']['id'])
                 if reply_owner == member_id:
+                    print(update)
+                    print(f'callback_query in {CHAT_ID}')
+                    s = storage.get(f'usr-{member_id}')
+                    if s:
+                        s = json.parse(s)
                     if callback_data == BUTTON_NO:
                         print('wrong answer, cleanup')
-                        [_, enter_msg, welcome_msg] = newcomers[member_id].split(':')
-                        r = delete_message(CHAT_ID, enter_msg)
+                        r = delete_message(CHAT_ID, s['enter_id'])
                         print(r.json())
-                        r = delete_message(CHAT_ID, welcome_msg)
+                        r = delete_message(CHAT_ID, s['welcome_id'])
                         print(r.json())
-                        newcomers[member_id] = None
+                        storage.delete(f'usr-{member_id}')
                         print('ban member')
                         r = ban_member(CHAT_ID, member_id)
                         print(r.json())
                     elif callback_data == BUTTON_OK:
                         print('proper answer, cleanup')
-                        [_, enter_msg, welcome_msg] = newcomers[member_id].split(':')
-                        r = delete_message(CHAT_ID, welcome_msg)
+                        r = delete_message(CHAT_ID, s['welcome_id'])
                         print(r.json())
-                        newcomers[member_id] = None
+                        s['newcomer'] = False
+                        storage.set(f'usr-{member_id}', json.dumps(s))
     except Exception:
         pass
     return text('ok')
