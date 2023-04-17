@@ -54,9 +54,7 @@ async def handle(req):
                     chat_id = str(msg['chat']['id'])
                     from_id = str(msg['from']['id'])
                     member_id = str(msg['new_chat_member']['id'])
-                    s = { 
-                        "enter_id": msg['message_id']
-                    }
+                    s = {}
                     if from_id == member_id:
                         print(f'new self-joined member {member_id}')
                         reply_markup = {
@@ -118,17 +116,26 @@ async def handle(req):
                 member_id = str(callback_query['from']['id'])
                 callback_data = callback_query['data']
                 reply_owner = str(callback_query['message']['reply_to_message']['from']['id'])
+                welcome_msg_id = str(callback_data['message']['message_id'])
+                enter_msg_id = str(callback_data['message']['reply_to_message']['message_id'])
                 if reply_owner == member_id:
                     print(update)
                     print(f'callback_query in {CHAT_ID}')
                     s = storage.get(f'usr-{member_id}')
                     if s:
                         s = codec.parse(s)
+                    else:
+                        print('no user session found, create')
+                        storage.set(f'usr-{member_id}', codec.dumps({
+                            'newcomer': True,
+                            'welcome_id': welcome_msg_id
+                        }))
+                    
                     if callback_data == BUTTON_NO:
                         print('wrong answer, cleanup')
-                        r = delete_message(CHAT_ID, s['enter_id'])
+                        r = delete_message(CHAT_ID, enter_msg_id)
                         print(r.json())
-                        r = delete_message(CHAT_ID, s['welcome_id'])
+                        r = delete_message(CHAT_ID, welcome_msg_id)
                         print(r.json())
                         storage.delete(f'usr-{member_id}')
                         print('ban member')
@@ -136,7 +143,7 @@ async def handle(req):
                         print(r.json())
                     elif callback_data == BUTTON_OK:
                         print('proper answer, cleanup')
-                        r = delete_message(CHAT_ID, s['welcome_id'])
+                        r = delete_message(CHAT_ID, welcome_msg_id)
                         print(r.json())
                         s['newcomer'] = False
                         storage.set(f'usr-{member_id}', codec.dumps(s))
