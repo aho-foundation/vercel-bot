@@ -1,6 +1,6 @@
 import os
 
-from tgbot.rest import delete_message, register_webhook, send_message, ban_member, unban_member
+from tgbot.rest import delete_message, register_webhook, send_message, ban_member, forward_message
 from sanic import Sanic
 from sanic.response import json, text
 
@@ -15,6 +15,10 @@ BUTTON_OK = os.environ.get('BUTTON_OK') or 'Ok'
 BUTTON_OK2 = os.environ.get('BUTTON_OK2') or 'I see'
 BUTTON_NO = os.environ.get('BUTTON_NO') or 'No'
 
+FEEDBACK_CHAT_ID = os.environ.get('FEEDBACK_CHAT_ID').replace("-", "-100")
+
+# runtime storages
+forwarded_ids = {}
 newcomers = {}
 app.config.REGISTERED = False
 
@@ -36,7 +40,19 @@ async def handle(req):
         print(update)
         msg = update.get('message', update.get('my_chat_member'))
         if msg:
-            if str(msg['chat']['id']) == CHAT_ID:
+            if msg['chat']['type'] == 'private':
+                if not msg:
+                    msg = update['edited_message']
+                    mid = msg['message_id']
+                    cid = msg['chat']['id']
+                    delete_message(FEEDBACK_CHAT_ID, forwarded_ids[(cid, mid)])
+                mid = msg['message_id']
+                cid = msg['chat']['id']
+                body = msg['text']
+                r = forward_message(cid, mid, FEEDBACK_CHAT_ID)
+                print(r.json)
+                forwarded_ids[(cid,mid)] = r['id']
+            elif str(msg['chat']['id']) == CHAT_ID:
                 print(f'message in chat')
                 if 'new_chat_member' in msg:
                     chat_id = str(msg['chat']['id'])
