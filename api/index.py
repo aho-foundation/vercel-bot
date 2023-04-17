@@ -78,14 +78,25 @@ async def handle(req):
                     else:
                         s['newcomer'] = False
 
-                    # create session
+                    # create new member session
                     storage.set(f'usr-{member_id}', codec.dumps(s))
+
+                elif 'left_chat_member' in msg:
+                    member_id = msg["left_chat_member"]["id"]
+                    s = storage.get(f'usr-{member_id}')
+                    if s:
+                        s = codec.parse(s)
+                        r = delete_message(CHAT_ID, s['welcome_id'])
+                        print(r.json())
+
+                        # remove left member session
+                        storage.delete(f'usr-{member_id}')
 
                 elif 'text' in msg:
                     chat_id = str(msg['chat']['id'])
                     member_id = str(msg['from']['id'])
 
-                    # check is author is selfjoined newcomer
+                    # check if author is self-joined newcomer
                     author = storage.get(f'usr-{member_id}')
 
                     if author:
