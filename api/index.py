@@ -29,7 +29,8 @@ async def register(req):
         r = register_webhook(WEBHOOK)
         print(f'\n\t\t\tWEBHOOK REGISTERED:\n{r.json()}')
         app.config.REGISTERED = True
-    return json(r.json())
+        return json(r.json())
+    return text('skipped')
 
 
 @app.post('/')
@@ -45,12 +46,12 @@ async def handle(req):
                     msg = update['edited_message']
                     mid = msg['message_id']
                     cid = msg['chat']['id']
-                    delete_message(FEEDBACK_CHAT_ID, forwarded_ids[(cid, mid)])
+                    # delete_message(FEEDBACK_CHAT_ID, forwarded_ids[(cid, mid)])
                 mid = msg['message_id']
                 cid = msg['chat']['id']
                 body = msg['text']
                 r = forward_message(cid, mid, FEEDBACK_CHAT_ID)
-                print(r.json)
+                print(r.json())
                 forwarded_ids[(cid,mid)] = r['id']
             elif str(msg['chat']['id']) == CHAT_ID:
                 print(f'message in chat')
