@@ -4,6 +4,7 @@ from tgbot.rest import delete_message, register_webhook, send_message, ban_membe
 from sanic import Sanic
 from sanic.response import json, text
 import redis
+import json as codec
 
 app = Sanic()
 
@@ -74,13 +75,13 @@ async def handle(req):
                         )
                         welcome_msg_id = r.json()['result']['message_id']
                         print(f'welcome message id: {welcome_msg_id}')
-                        s["newcomer"] = True,
+                        s["newcomer"] = True
                         s["welcome_id"] = welcome_msg_id
                     else:
                         s['newcomer'] = False
 
                     # create session
-                    storage.set(f'usr-{member_id}', json.dumps(s))
+                    storage.set(f'usr-{member_id}', codec.dumps(s))
 
                 elif 'text' in msg:
                     chat_id = str(msg['chat']['id'])
@@ -90,7 +91,7 @@ async def handle(req):
                     author = storage.get(f'usr-{member_id}')
 
                     if author:
-                        author = json.parse(author)
+                        author = codec.parse(author)
                         if author.get("newcomer"):
                             print(f'new member speaks {msg["text"]}')
                             answer = msg['text']
@@ -102,7 +103,7 @@ async def handle(req):
                                 author["newcomer"] = False
 
                                 # set author as not a newcomer
-                                storage.set(f'usr-{member_id}', json.dumps(author))
+                                storage.set(f'usr-{member_id}', codec.dumps(author))
 
                             else:
                                 print('remove some message')
@@ -122,7 +123,7 @@ async def handle(req):
                     print(f'callback_query in {CHAT_ID}')
                     s = storage.get(f'usr-{member_id}')
                     if s:
-                        s = json.parse(s)
+                        s = codec.parse(s)
                     if callback_data == BUTTON_NO:
                         print('wrong answer, cleanup')
                         r = delete_message(CHAT_ID, s['enter_id'])
@@ -138,7 +139,7 @@ async def handle(req):
                         r = delete_message(CHAT_ID, s['welcome_id'])
                         print(r.json())
                         s['newcomer'] = False
-                        storage.set(f'usr-{member_id}', json.dumps(s))
+                        storage.set(f'usr-{member_id}', codec.dumps(s))
     except Exception:
         pass
     return text('ok')
