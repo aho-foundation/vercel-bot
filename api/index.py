@@ -42,11 +42,23 @@ async def handle(req):
             print(update)
             msg = update.get('message', update.get('edited_message'))
             if msg['chat']['type'] == 'private':
+<<<<<<< HEAD
+=======
+                if not msg:
+                    msg = update['edited_message']
+                    mid = msg['message_id']
+                    cid = msg['chat']['id']
+                    # delete_message(FEEDBACK_CHAT_ID, forwarded_ids[(cid, mid)])
+>>>>>>> origin/main
                 mid = msg['message_id']
                 cid = msg['chat']['id']
                 r = forward_message(cid, mid, FEEDBACK_CHAT_ID)
                 print(r.json())
+<<<<<<< HEAD
                 storage.set(f'fbk-{cid}-{mid}', r['id'])
+=======
+                forwarded_ids[(cid,mid)] = r['id']
+>>>>>>> origin/main
             elif str(msg['chat']['id']) == CHAT_ID:
                 print(f'message in chat')
                 if 'new_chat_member' in msg:
