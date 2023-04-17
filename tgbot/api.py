@@ -19,7 +19,7 @@ def delete_message(cid: str, mid: str):
     return r
 
 
-def send_message(cid, body, reply_to=None, reply_markup=None):
+def send_message(cid: str, body, reply_to=None, reply_markup=None):
     url = apiBase + f"sendMessage?chat_id={cid}&text={body}"
     if reply_to:
         url += f'&reply_to_message_id={reply_to}'
@@ -28,6 +28,7 @@ def send_message(cid, body, reply_to=None, reply_markup=None):
         reply_markup = requests.utils.quote(reply_markup)
         url += f'&reply_markup={reply_markup}'
     r = requests.post(url)
+    print(f'{url}')
     return r
 
 

@@ -1,7 +1,7 @@
 {
   "version": 2,
   "functions": {
-    "api/index.py": {
+    "api/webhook.py": {
       "memory": 1024,
       "maxDuration": 10
     }
@@ -9,7 +9,7 @@
   "routes": [
     {
       "src": "/",
-      "dest": "/api/index.py"
+      "dest": "/api/webhook.py"
     }
   ]
 }
