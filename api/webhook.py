@@ -30,8 +30,9 @@ async def handle(req):
             msg = update.get('message', update.get('edited_message'))
             if msg['chat']['type'] == 'private':
                 handle_feedback(msg)
-            elif str(msg['chat']['id']) == FEEDBACK_CHAT_ID:
-                handle_answer(msg)
+            elif str(msg['chat']['id']) == FEEDBACK_CHAT_ID \
+                and 'reply_to_message' in msg:
+                    handle_answer(msg)
             elif str(msg['chat']['id']) == CHAT_ID:
                 if 'new_chat_member' in msg:
                     handle_welcome(msg)

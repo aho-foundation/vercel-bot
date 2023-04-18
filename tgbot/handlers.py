@@ -64,6 +64,8 @@ def handle_welcome(msg):
 
 
 def handle_left(msg):
+    print(f'handling member leaving')
+
     member_id = msg["left_chat_member"]["id"]
 
     # read member session
@@ -107,44 +109,49 @@ def handle_text(msg):
 
 
 def handle_button(callback_query):
-    member_id = str(callback_query['from']['id'])
-    callback_data = callback_query['data']
-    reply_owner = str(callback_query['message']['reply_to_message']['from']['id'])
-    welcome_msg_id = str(callback_query['message']['message_id'])
-    enter_msg_id = str(callback_query['message']['reply_to_message']['message_id'])
-    if reply_owner == member_id:
-        print(f'callback_query in {CHAT_ID}')
-        
-        # read session
-        s = storage.get(f'usr-{member_id}')
-        if s:
-            s = json.loads(s)
-        else:
-            print('no user session found, create')
-            s = {
-                'newcomer': True,
-                'welcome_id': welcome_msg_id
-            }
-            storage.set(f'usr-{member_id}', json.dumps(s))
-        
-        if callback_data == BUTTON_NO:
-            print('wrong answer, cleanup')
-            r = delete_message(CHAT_ID, enter_msg_id)
-            print(r.json())
-            r = delete_message(CHAT_ID, welcome_msg_id)
-            print(r.json())
+    if 'reply_to_message' not in callback_query['message']:
+        # удаляет сообщение с кнопкой, если оно ни на что не отвечает
+        r = delete_message(CHAT_ID, callback_query['message'])
+        print(r.json())
+    else:
+        member_id = str(callback_query['from']['id'])
+        callback_data = callback_query['data']
+        reply_owner = str(callback_query['message']['reply_to_message']['from']['id'])
+        welcome_msg_id = str(callback_query['message']['message_id'])
+        enter_msg_id = str(callback_query['message']['reply_to_message']['message_id'])
+        if reply_owner == member_id:
+            print(f'callback_query in {CHAT_ID}')
+            
+            # read session
+            s = storage.get(f'usr-{member_id}')
+            if s:
+                s = json.loads(s)
+            else:
+                print('no user session found, create')
+                s = {
+                    'newcomer': True,
+                    'welcome_id': welcome_msg_id
+                }
+                storage.set(f'usr-{member_id}', json.dumps(s))
+            
+            if callback_data == BUTTON_NO:
+                print('wrong answer, cleanup')
+                r = delete_message(CHAT_ID, enter_msg_id)
+                print(r.json())
+                r = delete_message(CHAT_ID, welcome_msg_id)
+                print(r.json())
 
-            # remove banned member session
-            storage.delete(f'usr-{member_id}')
+                # remove banned member session
+                storage.delete(f'usr-{member_id}')
 
-            print('ban member')
-            r = ban_member(CHAT_ID, member_id)
-            print(r.json())
-        elif callback_data == BUTTON_OK:
-            print('proper answer, cleanup')
-            r = delete_message(CHAT_ID, welcome_msg_id)
-            print(r.json())
-            s['newcomer'] = False
+                print('ban member')
+                r = ban_member(CHAT_ID, member_id)
+                print(r.json())
+            elif callback_data == BUTTON_OK:
+                print('proper answer, cleanup')
+                r = delete_message(CHAT_ID, welcome_msg_id)
+                print(r.json())
+                s['newcomer'] = False
 
-            # store new member session
-            storage.set(f'usr-{member_id}', json.dumps(s))
+                # store new member session
+                storage.set(f'usr-{member_id}', json.dumps(s))
