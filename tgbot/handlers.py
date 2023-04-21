@@ -1,4 +1,5 @@
-from tgbot.api import send_message, forward_message, delete_message, ban_member
+from tgbot.api import send_message, forward_message, delete_message, \
+    ban_member, set_chatpermissions
 from tgbot.config import FEEDBACK_CHAT_ID, WELCOME_MSG, BUTTON_NO, \
     BUTTON_OK, CHAT_ID, BUTTON_OK2, REDIS_URL
 import json
@@ -6,6 +7,18 @@ import redis
 
 # сохраняет сессии и пересылаемые сообщения между перезагрузками
 storage = redis.from_url(REDIS_URL)
+
+
+def user_accept(chat_id, author):
+    r = delete_message(CHAT_ID, author["welcome_id"])
+    print(r.json())
+    author["newcomer"] = False
+
+    r = set_chatpermissions(CHAT_ID, { "can_send_messages": True })
+    print(r.json())
+
+    # set author as not a newcomer
+    storage.set(f'usr-{author["id"]}', json.dumps(author))
 
 
 def handle_feedback(msg):
@@ -16,6 +29,7 @@ def handle_feedback(msg):
     # store private chat message id 
     # fbk-<support-chat-message-id> -> <private-chat-id>:<private-message-id>
     storage.set(f'fbk-{support_msg_id}', json.dumps({
+        "author_id": msg["from"]["id"],
         "message_id": mid,
         "chat_id": cid
     }))
@@ -37,6 +51,7 @@ def handle_welcome(msg):
     member_id = str(msg['new_chat_member']['id'])
     s = {}
     if from_id == member_id:
+        s["id"] = member_id
         print(f'new self-joined member {member_id}')
         reply_markup = {
             "inline_keyboard": [
@@ -53,9 +68,15 @@ def handle_welcome(msg):
             reply_markup=reply_markup
         )
         welcome_msg_id = r.json()['result']['message_id']
+        print(r.json())
         print(f'welcome message id: {welcome_msg_id}')
         s["newcomer"] = True
         s["welcome_id"] = welcome_msg_id
+        perms = {
+            "can_send_messages": False
+        }
+        r = set_chatpermissions(CHAT_ID, perms)
+        print(r.json())
     else:
         s['newcomer'] = False
 
@@ -93,17 +114,13 @@ def handle_text(msg):
             if BUTTON_OK.lower() in answer.lower() or \
                 BUTTON_OK2.lower() in answer.lower():
                 print('found answer, cleanup')
-                r = delete_message(CHAT_ID, author["welcome_id"])
-                print(r.json())
-                author["newcomer"] = False
 
-                # set author as not a newcomer
-                storage.set(f'usr-{member_id}', json.dumps(author))
+                user_accept(CHAT_ID, author)
 
-            else:
-                print('remove some message')
-                r = delete_message(CHAT_ID, msg['message_id'])
-                print(r.json())
+            #else:
+            #    print('remove some message')
+            #    r = delete_message(CHAT_ID, msg['message_id'])
+            #    print(r.json())
         else:
             print(f'old member speaks {msg["text"]}')
 
@@ -129,6 +146,7 @@ def handle_button(callback_query):
             else:
                 print('no user session found, create')
                 s = {
+                    'id': member_id,
                     'newcomer': True,
                     'welcome_id': welcome_msg_id
                 }
@@ -152,6 +170,4 @@ def handle_button(callback_query):
                 r = delete_message(CHAT_ID, welcome_msg_id)
                 print(r.json())
                 s['newcomer'] = False
-
-                # store new member session
-                storage.set(f'usr-{member_id}', json.dumps(s))
+                user_accept(CHAT_ID, s)
