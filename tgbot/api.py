@@ -47,6 +47,12 @@ def unban_member(chat_id, user_id):
     r = requests.post(url)
     return r
 
+# https://core.telegram.org/bots/api#addchatmember
+def add_chatmember(chat_id, user_id):
+    url = apiBase + f"addChatMember?chat_id={chat_id}&user_id={user_id}"
+    r = requests.post(url)
+    return r
+
 
 def forward_message(cid, mid, to_chat_id):
     url = apiBase + f"forwardMessage?chat_id={to_chat_id}" + \

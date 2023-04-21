@@ -1,6 +1,6 @@
 from tgbot.config import WEBHOOK, FEEDBACK_CHAT_ID, CHAT_ID # init storage there
-from tgbot.handlers import handle_feedback, handle_answer, handle_welcome, \
-    handle_left, handle_text, handle_button
+from tgbot.handlers import handle_feedback, handle_answer, \
+    handle_join, handle_left, handle_button
 from tgbot.api import register_webhook
 from sanic import Sanic
 from sanic.response import text
@@ -35,11 +35,9 @@ async def handle(req):
                     handle_answer(msg)
             elif str(msg['chat']['id']) == CHAT_ID:
                 if 'new_chat_member' in msg:
-                    handle_welcome(msg)
+                    handle_join(msg)
                 elif 'left_chat_member' in msg:
                     handle_left(msg)
-                elif 'text' in msg:
-                    handle_text(msg)
         if 'callback_query' in update:
             callback_query = update['callback_query']
             chat_id = str(callback_query['message']['chat']['id'])
