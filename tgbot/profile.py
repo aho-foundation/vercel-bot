@@ -19,10 +19,14 @@ class Profile:
         return s
 
     def save(self, s):
-        self.storage.set(f'usr-{member_id}', json.dumps(s))
+        self.storage.set(f'usr-{s["id"]}', json.dumps(s))
 
     def get(self, member_id):
-        return json.loads(self.storage.get(f'usr-{member_id}')) or self.create_session(member_id)
+        data = self.storage.get(f'usr-{member_id}')
+        if data is None:
+            return self.create(member_id)
+        else:
+            return json.loads(data)
 
     def leaving(self, s):
         if len(s['parents']) == 0:

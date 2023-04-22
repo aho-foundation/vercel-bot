@@ -1,6 +1,7 @@
 from tgbot.config import WEBHOOK, FEEDBACK_CHAT_ID # init storage there
 from tgbot.handlers import handle_feedback, handle_answer, \
-    handle_join, handle_left, handle_button, handle_join_request
+    handle_join, handle_left, handle_button, handle_join_request, \
+        handle_graph
 from tgbot.api import register_webhook
 from sanic import Sanic
 from sanic.response import text
@@ -31,9 +32,11 @@ async def handle(req):
             msg = update.get('message', update.get('edited_message'))
             if msg['chat']['type'] == 'private':
                 handle_feedback(msg)
-            elif str(msg['chat']['id']) == FEEDBACK_CHAT_ID \
-                and 'reply_to_message' in msg:
+            elif str(msg['chat']['id']) == FEEDBACK_CHAT_ID:
+                if 'reply_to_message' in msg:
                     handle_answer(msg)
+                elif 'text' in msg and msg['text'] == '/graph':
+                    handle_graph(msg)
             else:
                 if 'new_chat_member' in msg:
                     handle_join(msg)

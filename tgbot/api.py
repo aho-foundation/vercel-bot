@@ -86,3 +86,12 @@ def approve_chat_join_request(chat_id, user_id):
         f'&user_id={user_id}'
     r = requests.post(url)
     return r
+
+
+def send_graph(png_data, chat_id):
+    url = apiBase + f"sendPhoto"
+    headers = {"Content-Type": "multipart/form-data"}
+    files = {"photo": ("chart.png", png_data)}
+    params = {"chat_id": chat_id}
+    response = requests.post(url, headers=headers, files=files, params=params)
+    return response.json()
