@@ -9,10 +9,11 @@ class Profile:
     def create(self, member_id):
         s = {
             "id": member_id,
-            "newcomer": True,
+            "name": "newcomer",
+            "mention": "",
             "welcome_id": 0,
-            "vouched_by": [],
-            "vouched_for": []
+            "parents": [],
+            "children": []
         }
         self.storage.set(f'usr-{member_id}', json.dumps(s))
         return s
@@ -24,5 +25,5 @@ class Profile:
         return json.loads(self.storage.get(f'usr-{member_id}')) or self.create_session(member_id)
 
     def leaving(self, s):
-        if len(s['vouched_by']) == 0:
+        if len(s['parents']) == 0:
             self.storage.delete(f'usr-{s["id"]}')

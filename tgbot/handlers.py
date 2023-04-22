@@ -1,7 +1,7 @@
 from tgbot.api import send_message, forward_message, delete_message, \
-    ban_member, unban_member, set_chatpermissions
-from tgbot.config import FEEDBACK_CHAT_ID, WELCOME_MSG, BUTTON_NO, \
-    BUTTON_OK, CHAT_ID, REDIS_URL
+    ban_member, unban_member, mute_member, unmute_member, \
+    approve_chat_join_request
+from tgbot.config import REDIS_URL, FEEDBACK_CHAT_ID, BUTTON_VOUCH, NEWCOMER_MSG
 import json
 import redis
 from tgbot.profile import Profile as ProfileObj
@@ -12,6 +12,29 @@ storage = redis.from_url(REDIS_URL)
 
 # хранение необходимой информации о пользователях
 Profile = ProfileObj(storage)
+
+def show_request_msg(msg):
+    reply_markup = {
+        "inline_keyboard": [
+            [
+                {
+                    "text": BUTTON_VOUCH, 
+                    "callback_data": BUTTON_VOUCH + str(msg['from']['id'])
+                }
+            ]
+        ]
+    }
+
+    r = send_message(
+        msg['chat']['id'],
+        NEWCOMER_MSG + f"{msg['from']['first_name']} {msg['from']['last_name']}({msg['from']['username']})",   
+        reply_to=msg['message_id'],
+        reply_markup=reply_markup
+    )
+    welcome_msg_id = r.json()['result']['message_id']
+    print(r.json())
+    print(f'welcome message id: {welcome_msg_id}')
+    return welcome_msg_id
 
 
 def handle_feedback(msg):
@@ -40,127 +63,91 @@ def handle_answer(msg):
 def handle_join(msg):
     chat_id = str(msg['chat']['id'])
     from_id = str(msg['from']['id'])
-    member_id = str(msg['new_chat_member']['id'])
+    actor = Profile.get(from_id)
 
-    if from_id == member_id:
-        newcomer = Profile.get(member_id)
+    actor["name"] = msg['from']['first_name'] + msg['from'].get('last_name', '')
+    actor["mention"] = msg['from'].get('username', '')
 
-        print(f'new self-joined member {member_id}')
-        reply_markup = {
-            "inline_keyboard": [
-                [
-                    {"text": BUTTON_NO, "callback_data": BUTTON_NO},
-                    {"text": BUTTON_OK, "callback_data": BUTTON_OK},
-                    {"text": BUTTON_VOUCH, "callback_data": BUTTON_VOUCH}
-                ]
-            ]
-        }
-        r = send_message(
-            chat_id,
-            WELCOME_MSG,    
-            reply_to=msg['message_id'],
-            reply_markup=reply_markup
-        )
-        welcome_msg_id = r.json()['result']['message_id']
-        print(r.json())
-        print(f'welcome message id: {welcome_msg_id}')
-        newcomer["newcomer"] = True
-        newcomer["welcome_id"] = welcome_msg_id
-        perms = {
-            "can_send_messages": False
-        }
-        r = set_chatpermissions(CHAT_ID, perms)
-        print(r.json())
-        # обновляем профиль новичка
-        Profile.save(newcomer)
+    if from_id == str(msg['new_chat_member']['id']):
+        if len(actor['parents']) == 0:
+            # показываем сообщение с кнопкой "поручиться"
+            welcome_msg_id = show_request_msg(msg)
 
-    elif 'new_chat_members' in msg:
-        # кто-то пригласил новых участников
-        print(f'{len(msg["new_chat_members"])} members were invited by {from_id}')
-        # получаем его профиль
-        inviter = Profile.get(from_id)
-        
+            # обновляем профиль присоединившегося
+            actor['welcome_id'] = welcome_msg_id
+            Profile.save(actor)
+        else:
+            # за пользователя поручились ранее
+            r = delete_message(chat_id, actor['welcome_id'])
+            print(r.json())
+    else:
+        # пользователи приглашены другим участником
+        print(f'{len(msg["new_chat_members"])} members were invited by {from_id}')    
         for m in msg['new_chat_members']:
             newcomer = Profile.get(m['id'])
-            newcomer['vouched_by'].append(from_id)
+            newcomer['parents'].append(from_id)
             Profile.save(newcomer)
+            actor['children'].append(m['id'])
 
-            inviter['vouched_for'].append(m['id'])
         # обновляем профиль пригласившего
-        Profile.save(inviter)
+        Profile.save(actor)
 
 
 def handle_left(msg):
     print(f'handling member leaving')
-
     member_id = msg["left_chat_member"]["id"]
 
     # профиль покидающего чат
     leaver = Profile.get(member_id)
 
-    r = delete_message(CHAT_ID, leaver['welcome_id'])
+    # удаление сообщения с кнопкой
+    r = delete_message(msg['chat']['id'], leaver['welcome_id'])
     print(r.json())
 
     Profile.leaving(leaver)
 
 
 def handle_button(callback_query):
-    if 'reply_to_message' not in callback_query['message']:
-        # удаляет сообщение с кнопкой, если оно уже ни на что не отвечает
-        r = delete_message(CHAT_ID, callback_query['message'])
-        print(r.json())
-    else:
-        member_id = str(callback_query['from']['id'])
-        callback_data = callback_query['data']
-        welcomed_member_id = str(callback_query['message']['reply_to_message']['from']['id'])
-        welcome_msg_id = str(callback_query['message']['message_id'])
-        enter_msg_id = str(callback_query['message']['reply_to_message']['message_id'])
-        
-        # получаем профиль нажавшего кнопку
-        actor = Profile.get(member_id)
-        
-        if welcomed_member_id == member_id:
-            print(f'callback_query in {CHAT_ID}')
-            
-            if callback_data == BUTTON_NO:
-                print('wrong answer, cleanup')
-                r = delete_message(CHAT_ID, enter_msg_id)
-                print(r.json())
-                r = delete_message(CHAT_ID, welcome_msg_id)
-                print(r.json())
-                print('ban member')
-                r = ban_member(CHAT_ID, member_id)
-                print(r.json())
+    # получаем профиль нажавшего кнопку
+    actor_id = str(callback_query['from']['id'])
+    actor = Profile.get(actor_id)
 
-                # обработка профиля заблокированного пользователя
-                Profile.leaving(actor)
+    callback_data = callback_query['data']
+    if callback_data.startswith(BUTTON_VOUCH):
+        print(f'vouch button pressed by {actor_id}')
 
-            elif callback_data == BUTTON_OK:
-                print('proper answer, cleanup')
-                r = delete_message(CHAT_ID, welcome_msg_id)
-                print(r.json())
-                actor['newcomer'] = False
-
-                r = delete_message(CHAT_ID, author["welcome_id"])
-                print(r.json())
-
-                r = set_chatpermissions(CHAT_ID, { "can_send_messages": True })
-                print(r.json())
-
-                # обновление профиля нажавшего правильную кнопку
-                Profile.save(actor)
-                
-        elif callback_data == BUTTON_VOUCH:
-            # это кнопка поручения
-            print(f'vouch button pressed by {member_id}')
-            newcomer = Profile.get(welcomed_member_id)
-            if welcomed_member_id not in inviter['vouched_for'] and \
-                member_id not in newcomer['vouched_by']:
-                newcomer['vouched_by'].append(welcomed_member_id)
-                actor['vouched_for'].append(member_id)
+        newcomer_id = callback_data[len(BUTTON_VOUCH):]
+        newcomer = Profile.get(newcomer_id)
+        if newcomer_id not in inviter['children'] and \
+            actor_id not in newcomer['parents']:
+                newcomer['parents'].append(newcomer_id)
+                actor['children'].append(actor_id)
                 Profile.save(newcomer)
                 Profile.save(actor)
-                print('vouch success, unban member')
-                r = unban_member(CHAT_ID, member_id)
-                print(r.json())
-                
+                try:
+                    chat_id = str(callback_query['message']['chat']['id'])
+
+                    print('accept join request for public chat')
+                    r = approve_chat_join_request(chat_id, newcomer_id)
+                    print(r.json())
+
+                    print('unmute newcomer')
+                    r = unmute_member(chat_id, newcomer_id)
+                    print(r.json())
+                except:
+                    pass
+                    
+
+def handle_join_request(update):
+    print(f'handle join request')
+    chat_id = str(update['message']['chat']['id'])
+    from_id = str(update['message']['from']['id'])
+    actor = Profile.get(from_id)
+
+    actor["name"] = update['message']['from']['first_name'] + update['message']['from'].get('last_name', '')
+    actor["mention"] = update['message']['from'].get('username', '')
+
+    if from_id == str(update['message']['new_chat_member']['id']):
+        if len(actor['parents']) == 0:
+            # показываем сообщение с кнопкой "поручиться"
+            welcome_msg_id = show_request_msg(update)

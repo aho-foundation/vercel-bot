@@ -48,7 +48,7 @@ def unban_member(chat_id, user_id):
     return r
 
 # https://core.telegram.org/bots/api#addchatmember
-def add_chatmember(chat_id, user_id):
+def add_member(chat_id, user_id):
     url = apiBase + f"addChatMember?chat_id={chat_id}&user_id={user_id}"
     r = requests.post(url)
     return r
@@ -61,11 +61,28 @@ def forward_message(cid, mid, to_chat_id):
     return r
 
 
-# https://core.telegram.org/bots/api#setchatpermissions
-def set_chatpermissions(chat_id, chat_permissions):
-    chat_permissions = json.dumps(chat_permissions)
+# https://core.telegram.org/bots/api#restrictchatmember
+def mute_member(chat_id, member_id):
+    chat_permissions = json.dumps({ "can_send_messages": False })
     chat_permissions = requests.utils.quote(chat_permissions)
-    url = apiBase + f'setChatPermissions?chat_id={chat_id}' + \
-        f'&permissions={chat_permissions}'
+    url = apiBase + f'restrictChatMember?chat_id={chat_id}' + \
+        f'&user_id={user_id}&permissions={chat_permissions}'
+    r = requests.post(url)
+    return r
+
+
+# https://core.telegram.org/bots/api#restrictchatmember
+def unmute_member(chat_id, member_id):
+    chat_permissions = json.dumps({ "can_send_messages": True })
+    chat_permissions = requests.utils.quote(chat_permissions)
+    url = apiBase + f'restrictChatMember?chat_id={chat_id}' + \
+        f'&user_id={user_id}&permissions={chat_permissions}'
+    r = requests.post(url)
+    return r
+
+# https://core.telegram.org/bots/api#approvechatjoinrequest
+def approve_chat_join_request(chat_id, user_id):
+    url = apiBase + f"approveChatJoinRequest?chat_id={chat_id}" + \
+        f'&user_id={user_id}'
     r = requests.post(url)
     return r

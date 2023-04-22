@@ -1,6 +1,6 @@
-from tgbot.config import WEBHOOK, FEEDBACK_CHAT_ID, CHAT_ID # init storage there
+from tgbot.config import WEBHOOK, FEEDBACK_CHAT_ID # init storage there
 from tgbot.handlers import handle_feedback, handle_answer, \
-    handle_join, handle_left, handle_button
+    handle_join, handle_left, handle_button, handle_join_request
 from tgbot.api import register_webhook
 from sanic import Sanic
 from sanic.response import text
@@ -17,6 +17,7 @@ async def register(req):
         print(f'\n\t\t\tWEBHOOK REGISTERED:\n{r.json()}')
         app.config.REGISTERED = True
         print(r.json())
+        return text('ok')
     return text('skipped')
 
 
@@ -33,16 +34,16 @@ async def handle(req):
             elif str(msg['chat']['id']) == FEEDBACK_CHAT_ID \
                 and 'reply_to_message' in msg:
                     handle_answer(msg)
-            elif str(msg['chat']['id']) == CHAT_ID:
+            else:
                 if 'new_chat_member' in msg:
                     handle_join(msg)
                 elif 'left_chat_member' in msg:
                     handle_left(msg)
-        if 'callback_query' in update:
-            callback_query = update['callback_query']
-            chat_id = str(callback_query['message']['chat']['id'])
-            if chat_id == CHAT_ID:
-                handle_button(callback_query)
+        elif 'callback_query' in update:
+            handle_button(update['callback_query'])
+        elif 'chat_join_request' in update:
+            print('chat join request')
+            handle_join_request(update)
     except Exception:
         import traceback
         traceback.print_exc()
