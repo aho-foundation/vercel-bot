@@ -15,7 +15,7 @@ from tgbot.handlers.callback_unlink import handle_unlink
 from tgbot.api import register_webhook
 
 
-app = Sanic()
+app = Sanic(name="welcomecenter")
 app.config.REGISTERED = False
 
 
