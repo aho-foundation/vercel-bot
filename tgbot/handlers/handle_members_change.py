@@ -1,6 +1,6 @@
 from tgbot.handlers.send_button import show_request_msg
 from tgbot.api import unmute_member, mute_member, delete_message
-from tgbot.storage import Profile
+from tgbot.storage import Profile, storage
 
 def handle_join(msg):
     chat_id = str(msg['chat']['id'])
@@ -12,15 +12,13 @@ def handle_join(msg):
     if from_id == newcomer_id:
         if len(actor['parents']) == 0:
             # показываем сообщение с кнопкой "поручиться"
-            request_msg_id = show_request_msg(msg)
+            btn_msg_id = show_request_msg(msg)
+            storage.set(f'btn-{chat_id}-{from_id}', btn_msg_id)
 
             # до одобрения - мьют
             r = mute_member(chat_id, newcomer_id)
             print(r)
 
-            # обновляем профиль присоединившегося
-            actor['request_msg_id'] = f'{chat_id}:{request_msg_id}'
-            Profile.save(actor)
         else:
             # за пользователя поручились ранее
             pass
@@ -44,14 +42,11 @@ def handle_left(msg):
     member_id = msg["left_chat_member"]["id"]
     chat_id = msg['chat']['id']
 
-    # профиль покидающего чат
-    leaver = Profile.get(member_id)
-
     # удаление сообщения с кнопкой в этом чате
-    if leaver['request_msg_id'].startswith(chat_id):
-        chat_id, rmid = leaver['request_msg_id'].split(':')
-        r = delete_message(chat_id, rmid)
+    prev_msg_id = storage.get(f'btn-{chat_id}-{member_id}')
+    if prev_msg_id:
+        r = delete_message(chat_id, prev_msg_id)
         print(r)
+        storage.remove(f'btn-{chat_id}-{member_id}')
 
-    Profile.leaving(leaver)
 

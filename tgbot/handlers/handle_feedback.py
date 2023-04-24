@@ -19,11 +19,14 @@ def handle_feedback(msg):
 
 
 def handle_answer(msg):
-    print(f'handle answer from support')
-    support_msg_id = str(msg['reply_to_message']['message_id'])
-    # получение сохраненного айди сообщения из личной переписки с ботом
-    stored_feedback = storage.get(f'fbk-{support_msg_id}')
-    stored_feedback = json.loads(stored_feedback)
-    r = send_message(f'{stored_feedback["chat_id"]}', msg['text'], reply_to=stored_feedback["message_id"])
-    print(r)
+    answered_msg = msg['reply_to_message']
+    if answered_msg['from']['is_bot']:
+        support_msg_id = str(answered_msg['message_id'])
+        # получение сохраненного информации о сообщении для ответа
+        stored_feedback = storage.get(f'fbk-{support_msg_id}')
+        if stored_feedback:
+            print(f'handle answer from support')
+            stored_feedback = json.loads(stored_feedback)
+            r = send_message(f'{stored_feedback["chat_id"]}', msg['text'], reply_to=stored_feedback["message_id"])
+            print(r)
 

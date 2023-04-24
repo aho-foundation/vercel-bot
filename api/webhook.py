@@ -1,7 +1,7 @@
 from sanic import Sanic
 from sanic.response import text
 
-from tgbot.config import WEBHOOK, FEEDBACK_CHAT_ID
+from tgbot.config import WEBHOOK, FEEDBACK_CHAT_ID, BUTTON_VOUCH
 
 from tgbot.handlers.handle_feedback import handle_feedback, handle_answer
 from tgbot.handlers.handle_members_change import handle_join, handle_left
@@ -12,7 +12,7 @@ from tgbot.handlers.command_graph import handle_command_graph
 from tgbot.handlers.callback_vouch import handle_button
 from tgbot.handlers.callback_unlink import handle_unlink
 
-from tgbot.api import register_webhook
+from tgbot.api import register_webhook, send_message
 
 
 app = Sanic(name="welcomecenter")
@@ -41,22 +41,25 @@ async def handle(req):
         # видимые сообщения
         msg = update.get('message', update.get('edited_message'))
         if msg:
-            if msg['chat']['id'] == msg['from']['id']:
-                if msg['text'] == '/my':
-                    handle_command_my(msg)
+            if 'text' in msg:
+                if msg['chat']['id'] == msg['from']['id']:
+                    if msg['text'] == '/my':
+                        handle_command_my(msg)
+                    else:
+                        handle_feedback(msg)
+                elif str(msg['chat']['id']) == FEEDBACK_CHAT_ID:
+                    if 'reply_to_message' in msg:
+                        handle_answer(msg)
+                    elif msg['text'] == '/graph':
+                        await handle_command_graph(msg)
                 else:
-                    handle_feedback(msg)
-            elif str(msg['chat']['id']) == FEEDBACK_CHAT_ID:
-                if 'reply_to_message' in msg:
-                    handle_answer(msg)
-                elif 'text' in msg and msg['text'] == '/graph':
-                    await handle_command_graph(msg)
+                    handle_default(msg)
             elif 'new_chat_member' in msg:
                 handle_join(msg)
             elif 'left_chat_member' in msg:
                 handle_left(msg)
             else:
-                handle_default(msg)
+                print('message without text')
 
         # кнопки
         elif 'callback_query' in update:
@@ -78,5 +81,6 @@ async def handle(req):
     
     except Exception:
         import traceback
+        r = send_message(FEEDBACK_CHAT_ID, f'<pre>{traceback.format_exc()}</pre>')
         traceback.print_exc()
     return text('ok')

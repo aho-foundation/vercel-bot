@@ -25,5 +25,6 @@ async def handle_command_graph(msg):
         members.append(member)
     print(f'found {len(members)} members')
     data = generate_chart(members)
-    r = await send_document(msg['chat']['id'], data, 'chart.svg')
-    print(r)
+    if data:
+        r = await send_document(msg['chat']['id'], data, 'chart.svg')
+        print(r)

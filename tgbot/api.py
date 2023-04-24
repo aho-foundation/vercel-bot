@@ -96,9 +96,10 @@ def approve_chat_join_request(chat_id, user_id):
 async def send_document(chat_id, data='', filename='chart.svg'):
     url = apiBase + "sendDocument"
     params = { "chat_id": chat_id }
-    files = { "document": data }
+    filedata = aiohttp.FormData()
+    filedata.add_field('document', data, filename=filename)
 
-    async with aiohttp.ClientSession(headers=headers) as session:
+    async with aiohttp.ClientSession() as session:
         async with session.post(url, params=params, data=filedata) as response:
             if response.status != 200:
                 error_text = await response.text()
@@ -114,17 +115,19 @@ async def send_document(chat_id, data='', filename='chart.svg'):
 
 
 # https://core.telegram.org/bots/api#sendphoto
-async def send_photo(png_data, chat_id):
+async def send_photo(chat_id, img_data, filename='chart.png'):
     url = apiBase + f"sendPhoto"
-    headers = {"Content-Type": "multipart/form-data"}
-    files = {"photo": ("chart.png", png_data)}
-    params = {"chat_id": chat_id}
+    params = {"chat_id": chat_id }
+    filedata = aiohttp.FormData()
+    filedata.add_field('photo', img_data, filename=filename)
     
-    async with aiohttp.ClientSession(headers=headers) as session:
+    async with aiohttp.ClientSession() as session:
         async with session.post(url, params=params, data=filedata) as response:
             if response.status != 200:
-                print(f"Error sending photo: {response.status}")
+                error_text = await response.text()
+                print(f"Error sending photo: {response.status} - {error_text}")
                 return None
+
 
             try:
                 return await response.json()

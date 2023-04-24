@@ -1,4 +1,4 @@
-sanic
+sanic==19.6.0
 requests
 redis
 aiohttp

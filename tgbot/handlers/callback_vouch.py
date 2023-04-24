@@ -1,5 +1,6 @@
 from tgbot.api import send_message, forward_message, delete_message
 from tgbot.storage import Profile
+from tgbot.config import BUTTON_VOUCH
 
 
 def handle_button(callback_query):

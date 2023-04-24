@@ -1,6 +1,6 @@
 from tgbot.api import send_message
 from tgbot.config import BUTTON_VOUCH, NEWCOMER_MSG
-from tgbot.utils import mention
+from tgbot.utils.mention import mention
 
 def show_request_msg(msg):
     reply_markup = {
@@ -20,8 +20,6 @@ def show_request_msg(msg):
         reply_to=msg.get('message_id', ''),
         reply_markup=reply_markup
     )
-    request_msg_id = r['result']['message_id']
-    chat_id = msg['chat']['id']
-    print(r)
-    print(f'request message id: {chat_id}:{request_msg_id}')
-    return request_msg_id
+    btn_msg_id = r['result']['message_id']
+    print(f'request message id: {btn_msg_id}')
+    return btn_msg_id

@@ -9,7 +9,6 @@ class Profile:
     def create(self, member_id, msg=None):
         s = {
             "id": member_id,
-            "request_msg_id": 0,
             "parents": [],
             "children": [],
             "chats": []
@@ -38,7 +37,3 @@ class Profile:
         else:
             r = json.loads(data)
         return r
-
-    def leaving(self, s):
-        if len(s['parents']) == 0:
-            self.storage.delete(f'usr-{s["id"]}')
