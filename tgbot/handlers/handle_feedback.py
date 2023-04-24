@@ -8,14 +8,19 @@ from tgbot.config import FEEDBACK_CHAT_ID
 def handle_feedback(msg):
     mid = msg['message_id']
     cid = msg['chat']['id']
-    r = forward_message(cid, mid, FEEDBACK_CHAT_ID)
-    support_msg_id = r['result']['message_id']
-    # сохранение айди сообщения в приватной переписке с ботом
-    storage.set(f'fbk-{support_msg_id}', json.dumps({
-        "author_id": msg["from"]["id"],
-        "message_id": mid,
-        "chat_id": cid
-    }))
+    if msg['text'] == '/start':
+        r = send_message(cid, 'Напишите своё сообщение для администрации чата')
+        print(r)
+    else:
+        r = forward_message(cid, mid, FEEDBACK_CHAT_ID)
+        support_msg_id = r['result']['message_id']
+        # сохранение айди сообщения в приватной переписке с ботом
+        storage.set(f'fbk-{support_msg_id}', json.dumps({
+            "author_id": msg["from"]["id"],
+            "message_id": mid,
+            "chat_id": cid
+        }))
+
 
 
 def handle_answer(msg):
