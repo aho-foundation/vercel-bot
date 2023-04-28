@@ -14,15 +14,17 @@ class Profile:
             "chats": []
         }
 
-        if msg.get('from'):
-            sender = msg.get('from')
-            s["mention"] = sender.get('username')
-            s["name"] = f"{sender['first_name']} {sender.get('last_name', '')}".strip()
+        if msg:
+            
+            if 'from' in msg:
+                sender = msg.get('from')
+                s["mention"] = sender.get('username')
+                s["name"] = f"{sender['first_name']} {sender.get('last_name', '')}".strip()
 
-        if msg.get('chat'):
-            chat_id = str(msg['chat']['id'])
-            if chat_id not in s['chats']:
-                s["chats"].append(chat_id)
+            if 'chat' in msg:
+                chat_id = str(msg['chat']['id'])
+                if chat_id not in s['chats']:
+                    s["chats"].append(chat_id)
 
         self.storage.set(f'usr-{member_id}', json.dumps(s))
         return s

@@ -1,7 +1,7 @@
 from sanic import Sanic
 from sanic.response import text
 
-from tgbot.config import WEBHOOK, FEEDBACK_CHAT_ID, BUTTON_VOUCH
+from tgbot.config import WEBHOOK, FEEDBACK_CHAT_ID
 
 from tgbot.handlers.handle_feedback import handle_feedback, handle_answer
 from tgbot.handlers.handle_members_change import handle_join, handle_left
@@ -9,9 +9,10 @@ from tgbot.handlers.handle_join_request import handle_join_request
 from tgbot.handlers.handle_default import handle_default
 from tgbot.handlers.command_my import handle_command_my
 from tgbot.handlers.command_graph import handle_command_graph
+from tgbot.handlers.command_ask import handle_command_ask
 from tgbot.handlers.callback_vouch import handle_button
 from tgbot.handlers.callback_unlink import handle_unlink
-
+from tgbot.handlers.handle_startup import handle_startup
 from tgbot.api import register_webhook, send_message
 
 
@@ -28,6 +29,7 @@ async def register(req):
         app.config.REGISTERED = True
         print(r)
         res = 'ok'
+        handle_startup()
     return text(res)
         
 
@@ -43,7 +45,8 @@ async def handle(req):
         if msg:
             if 'text' in msg:
                 if msg['chat']['id'] == msg['from']['id']:
-                    if msg['text'] == '/my':
+                    print('private chat message')
+                    if msg['text'].startswith('/my'):
                         handle_command_my(msg)
                     else:
                         handle_feedback(msg)
@@ -52,6 +55,8 @@ async def handle(req):
                         handle_answer(msg)
                     elif msg['text'] == '/graph':
                         await handle_command_graph(msg)
+                    elif msg['text'].startswith('/ask'):
+                        handle_command_ask(msg)
                 else:
                     handle_default(msg)
             elif 'new_chat_member' in msg:
@@ -64,7 +69,7 @@ async def handle(req):
         # кнопки
         elif 'callback_query' in update:
             data = update['callback_query']['data']
-            if data.startswith(BUTTON_VOUCH):
+            if data.startswith('vouch'):
                 handle_button(update['callback_query'])
             elif data.startswith('unlink'):
                 handle_unlink(update['callback_query'])
@@ -81,6 +86,6 @@ async def handle(req):
     
     except Exception:
         import traceback
-        r = send_message(FEEDBACK_CHAT_ID, f'<pre>{traceback.format_exc()}</pre>')
+        r = send_message(FEEDBACK_CHAT_ID, f'<pre>\n{traceback.format_exc()}\n</pre>')
         traceback.print_exc()
     return text('ok')

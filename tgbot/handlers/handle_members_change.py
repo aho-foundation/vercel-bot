@@ -12,8 +12,7 @@ def handle_join(msg):
     if from_id == newcomer_id:
         if len(actor['parents']) == 0:
             # показываем сообщение с кнопкой "поручиться"
-            btn_msg_id = show_request_msg(msg)
-            storage.set(f'btn-{chat_id}-{from_id}', btn_msg_id)
+            show_request_msg(msg)
 
             # до одобрения - мьют
             r = mute_member(chat_id, newcomer_id)
@@ -43,9 +42,9 @@ def handle_left(msg):
     chat_id = msg['chat']['id']
 
     # удаление сообщения с кнопкой в этом чате
-    prev_msg_id = storage.get(f'btn-{chat_id}-{member_id}')
+    prev_msg = storage.get(f'btn-{chat_id}-{member_id}')
     if prev_msg_id:
-        r = delete_message(chat_id, prev_msg_id)
+        r = delete_message(chat_id, prev_msg['id'])
         print(r)
         storage.remove(f'btn-{chat_id}-{member_id}')
 

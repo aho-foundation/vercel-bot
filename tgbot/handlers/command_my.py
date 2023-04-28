@@ -1,33 +1,26 @@
 from tgbot.storage import Profile
 from tgbot.api import get_member, send_message
+from tgbot.utils.mention import userdata_extract
+
 
 def construct_unlink_buttons(actor):
     buttons = []
     for vouch in actor['children']:
-        vouch_added = False
         for chat_id in actor['chats']:
-            if not vouch_added:
-                r = get_member(chat_id, vouch)
-                member = r.get('result')
-                if member:
-                    try:
-                        buttons.append({
-                            'text': mention(r['result']),
-                            'callback_data': 'unlink' + vouch
-                        })
-                        vouch_added = True
-                    except:
-                        print('member result error')
-                        print(member)
-                else:
-                    print(r)
+            r = get_member(chat_id, vouch)
+            member = r['result']['user']
+            uid, identity, username = userdata_extract(member)
+            buttons.append({
+                'text': f'{identity} {username}',
+                'callback_data': 'unlink' + vouch
+            })
     return { "inline_keyboard": [ buttons, ] }
+
 
 def handle_command_my(msg):
     print(f'handle my command')
     from_id = str(msg['from']['id'])
     sender = Profile.get(from_id, msg)
-
     # генерируем кнопки для всех, за кого поручились
     reply_markup = construct_unlink_buttons(sender)
 

@@ -17,15 +17,8 @@ def handle_default(msg):
         r = delete_message(chat_id, msg['message_id'])
         print(r)
 
-        # удалить предыдушее сообщение с кнопкой в этом чате
-        prev_msg_id = storage.get(f'btn-{chat_id}-{from_id}')
-        if prev_msg_id:
-            r = delete_message(chat_id, prev_msg_id)
-            print(r)
-
         # показать новое сообщение с кнопкой
-        btn_msg_id = show_request_msg(msg)
-        storage.set(f'btn-{chat_id}-{from_id}', btn_msg_id)
+        show_request_msg(msg)
     else:
         # любое другое сообщение
         if len(sender['parents']) == 0:
@@ -38,12 +31,12 @@ def handle_default(msg):
                 if admin['status'] == 'creator':
                     owner_id = admin['user']['id']
                     break
-            
-            sender['parents'].append(owner_id)
-            # обновляем профиль владельца
-            owner = Profile.get(owner_id)
-            owner['children'].append(from_id)
-            Profile.save(owner)
+            if owner_id:
+                sender['parents'].append(owner_id)
+                # обновляем профиль владельца
+                owner = Profile.get(owner_id)
+                owner['children'].append(from_id)
+                Profile.save(owner)
 
     # сохранить профиль отправителя
     Profile.save(sender)

@@ -4,3 +4,4 @@ __pycache__
 .vercel
 api/payload.json
 update.json
+.vscode

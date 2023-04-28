@@ -29,9 +29,21 @@ def send_message(cid: str, body, reply_to=None, reply_markup=None):
         reply_markup = json.dumps(reply_markup)
         reply_markup = requests.utils.quote(reply_markup)
         url += f'&reply_markup={reply_markup}'
-    url += f'&parse_mode=HTML'
+    url += f'&parse_mode=html'
     r = requests.post(url)
-    print(f'{url}')
+    return r.json()
+
+# https://core.telegram.org/bots/api#sendphoto
+def send_photo(cid: str, file_id: str, caption="", reply_to=None, reply_markup=None):
+    url = apiBase + f"sendPhoto?chat_id={cid}&photo={file_id}"
+    if reply_to:
+        url += f'&reply_to_message_id={reply_to}'
+    if reply_markup:
+        reply_markup = json.dumps(reply_markup)
+        reply_markup = requests.utils.quote(reply_markup)
+        url += f'&reply_markup={reply_markup}'
+    url += f'&parse_mode=html'
+    r = requests.post(url)
     return r.json()
 
 
@@ -69,7 +81,8 @@ def mute_member(chat_id, member_id):
     chat_permissions = json.dumps({ "can_send_messages": False })
     chat_permissions = requests.utils.quote(chat_permissions)
     url = apiBase + f'restrictChatMember?chat_id={chat_id}' + \
-        f'&user_id={member_id}&permissions={chat_permissions}'
+        f'&user_id={member_id}&permissions={chat_permissions}' + \
+        f'&use_independent_chat_permissions=1'
     r = requests.post(url)
     return r.json()
 
@@ -79,7 +92,8 @@ def unmute_member(chat_id, member_id):
     chat_permissions = json.dumps({ "can_send_messages": True })
     chat_permissions = requests.utils.quote(chat_permissions)
     url = apiBase + f'restrictChatMember?chat_id={chat_id}' + \
-        f'&user_id={member_id}&permissions={chat_permissions}'
+        f'&user_id={member_id}&permissions={chat_permissions}' + \
+        f'&use_independent_chat_permissions=1'
     r = requests.post(url)
     return r.json()
 
@@ -113,29 +127,6 @@ async def send_document(chat_id, data='', filename='chart.svg'):
                 return None
 
 
-
-# https://core.telegram.org/bots/api#sendphoto
-async def send_photo(chat_id, img_data, filename='chart.png'):
-    url = apiBase + f"sendPhoto"
-    params = {"chat_id": chat_id }
-    filedata = aiohttp.FormData()
-    filedata.add_field('photo', img_data, filename=filename)
-    
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, params=params, data=filedata) as response:
-            if response.status != 200:
-                error_text = await response.text()
-                print(f"Error sending photo: {response.status} - {error_text}")
-                return None
-
-
-            try:
-                return await response.json()
-            except ValueError as e:
-                print(f"Error decoding JSON: {e}")
-                return None
-
-
 # https://core.telegram.org/bots/api#getchatadministrators
 def get_chat_administrators(chat_id):
     url = apiBase + f"getChatAdministrators?chat_id={chat_id}"
@@ -143,8 +134,15 @@ def get_chat_administrators(chat_id):
     return r.json()
 
 
-# # https://core.telegram.org/bots/api#getchatmember
+# https://core.telegram.org/bots/api#getchatmember
 def get_member(chat_id, member_id):
     url = apiBase + f"getChatMember?chat_id={chat_id}&user_id={member_id}"
+    r = requests.get(url)
+    return r.json()
+
+
+# https://core.telegram.org/bots/api#getuserprofilephotos
+def get_userphotos(user_id):
+    url = apiBase + f"getUserProfilePhotos?user_id={user_id}"
     r = requests.get(url)
     return r.json()
