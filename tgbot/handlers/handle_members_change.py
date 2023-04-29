@@ -1,6 +1,7 @@
 from tgbot.handlers.send_button import show_request_msg
 from tgbot.api import unmute_member, mute_member, delete_message
 from tgbot.storage import Profile, storage
+from tgbot.config import FEEDBACK_CHAT_ID
 
 def handle_join(msg):
     chat_id = str(msg['chat']['id'])
@@ -10,7 +11,7 @@ def handle_join(msg):
 
     newcomer_id = str(msg['new_chat_member']['id'])
     if from_id == newcomer_id:
-        if len(actor['parents']) == 0:
+        if len(actor['parents']) == 0 and chat_id != FEEDBACK_CHAT_ID:
             # показываем сообщение с кнопкой "поручиться"
             show_request_msg(msg)
 
@@ -43,7 +44,7 @@ def handle_left(msg):
 
     # удаление сообщения с кнопкой в этом чате
     prev_msg = storage.get(f'btn-{chat_id}-{member_id}')
-    if prev_msg_id:
+    if prev_msg:
         r = delete_message(chat_id, prev_msg['id'])
         print(r)
         storage.remove(f'btn-{chat_id}-{member_id}')

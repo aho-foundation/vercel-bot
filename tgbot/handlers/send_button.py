@@ -1,5 +1,5 @@
 from tgbot.api import send_message, send_photo, get_userphotos
-from tgbot.utils.mention import mention
+from tgbot.utils.mention import mention, userdata_extract
 from tgbot.storage import storage
 
 def show_request_msg(msg):
@@ -10,7 +10,7 @@ def show_request_msg(msg):
         "inline_keyboard": [
             [
                 {
-                    "text": 'Моё одобрение' if lang == 'ru' else 'My connection', 
+                    "text": '❤️', 
                     "callback_data": 'vouch' + from_id
                 }
             ]
@@ -21,15 +21,18 @@ def show_request_msg(msg):
     r = get_userphotos(user_id=from_id)
     print(r)
     if r['ok'] and r['result']['total_count'] > 0:
+        print('show button with photo')
         file_id = r['result']['photos'][0][0]['file_id']
+        _uid, identity, username = userdata_extract(msg['from'])
         r = send_photo(
             chat_id,
             file_id,
-            caption=newcomer_message + mention(msg['from']),
+            caption=newcomer_message + f'{identity}{username}',
             reply_to=msg.get('message_id', ''),
             reply_markup=reply_markup
         )
     else:
+        print('show button without photo')
         r = send_photo(
             chat_id,
             newcomer_message + mention(msg['from']),   

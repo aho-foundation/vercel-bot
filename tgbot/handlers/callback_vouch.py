@@ -1,5 +1,6 @@
-from tgbot.api import send_message, forward_message, delete_message, approve_chat_join_request, unmute_member
-from tgbot.storage import Profile
+from tgbot.api import send_message, forward_message, delete_message, \
+    approve_chat_join_request, unmute_member, edit_replymarkup, get_chat
+from tgbot.storage import Profile, storage
 
 
 def handle_button(callback_query):
@@ -38,7 +39,27 @@ def handle_button(callback_query):
                 r = approve_chat_join_request(chat_id, newcomer_id)
                 print(r)
 
-                if not r.get('ok'):              
+                print('update reply markup')
+                prevmsg_id = storage.get(f'btn-{chat_id}-{newcomer_id}').decode('utf-8')
+                amount = len(newcomer['parents']) + 1
+                rm = {
+                    "inline_keyboard": [
+                        [
+                            {
+                                "text": '❤️' + f'({amount})', 
+                                "callback_data": 'vouch' + newcomer_id
+                            }
+                        ]
+                    ]
+                }
+                r = edit_replymarkup(chat_id, premsg_id, reply_markup=rm)
+                print(r)
+
+                if not r.get('ok'):         
+                    print('getting chat permissions')     
+                    r = get_chat(chat_id)
+                    print(r)
+                    perms = r['result']['permissions']
                     print('try to unmute newcomer')
-                    r = unmute_member(chat_id, newcomer_id)
+                    r = unmute_member(chat_id, newcomer_id, chat_permissions=perms)
                     print(r)

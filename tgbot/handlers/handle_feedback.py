@@ -27,7 +27,11 @@ def handle_feedback(msg):
 
 def handle_answer(msg):
     answered_msg = msg['reply_to_message']
-    if answered_msg['from']['is_bot']:
+    r = get_chat_administrators(msg['chat']['id'])
+    print(r)
+    for a in r['result']:
+        admins.append(a['user']['id'])
+    if answered_msg['from']['is_bot'] and msg['from']['id'] in admins:
         support_msg_id = str(answered_msg['message_id'])
         # получение сохраненного информации о сообщении для ответа
         stored_feedback = storage.get(f'fbk-{support_msg_id}')

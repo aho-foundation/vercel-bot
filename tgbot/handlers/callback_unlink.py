@@ -1,5 +1,6 @@
-from tgbot.api import send_message, delete_message
+from tgbot.api import send_message, delete_message, kick_member
 from tgbot.handlers.command_my import handle_command_my
+from tgbot.utils.mention import userdata_extract
 from tgbot.storage import Profile
 
 # remove link of callback sender 
@@ -29,7 +30,14 @@ def handle_unlink(callback_query):
     if len(actor['children']) > 0:
         handle_command_my(callback_query)
 
-    # если больше никто не поручился - мьютим
+    # если больше никто не поручился - kick out
     if len(linked['parents']) == 0:
+        lang = callback_query['from'].get('language_code', 'ru')
         for chat_id in linked['chats']:
-            mute_member(chat_id, linked_id)
+            r = kick_member(chat_id, linked_id)
+            print(r)
+            if r['ok']:
+                _, identity, username = userdata_extract(linked['result']['user'])
+                body = ('Участник %s%s был удалён' if lang == 'ru' else 'Member %s%s was deleted') % (identity, username)
+                r = send_message(chat_id, body)
+                print(r)
