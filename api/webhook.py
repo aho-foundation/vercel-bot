@@ -48,6 +48,8 @@ async def handle(req):
                     print('private chat message')
                     if msg['text'].startswith('/my'):
                         handle_command_my(msg)
+                    elif msg['text'].startswith('/unlink'):
+                        handle_unlink(msg)
                     else:
                         handle_feedback(msg)
                 elif str(msg['chat']['id']) == FEEDBACK_CHAT_ID:

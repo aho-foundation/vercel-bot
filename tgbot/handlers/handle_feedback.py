@@ -1,6 +1,6 @@
 import json
 
-from tgbot.api import send_message, forward_message, delete_message
+from tgbot.api import send_message, forward_message, delete_message, get_chat_administrators
 from tgbot.handlers.send_button import show_request_msg
 from tgbot.utils.mention import userdata_extract
 from tgbot.storage import storage, Profile
@@ -29,6 +29,7 @@ def handle_answer(msg):
     answered_msg = msg['reply_to_message']
     r = get_chat_administrators(msg['chat']['id'])
     print(r)
+    admins = []
     for a in r['result']:
         admins.append(a['user']['id'])
     if answered_msg['from']['is_bot'] and msg['from']['id'] in admins:

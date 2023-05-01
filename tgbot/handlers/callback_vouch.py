@@ -23,14 +23,14 @@ def handle_button(callback_query):
         else:
                 # нажал кто-то другой
 
-                if actor_id not in newcomer['parents']:
+                if str(actor_id) not in newcomer['parents']:
                     print(f'save parent for {newcomer_id}')
-                    newcomer['parents'].append(actor_id)
+                    newcomer['parents'].append(str(actor_id))
                     Profile.save(newcomer)
 
-                if newcomer_id not in actor['children']:
+                if str(newcomer_id) not in actor['children']:
                     print(f'save child for {actor_id}')
-                    actor['children'].append(newcomer_id)
+                    actor['children'].append(str(newcomer_id))
                     Profile.save(actor)
 
                 chat_id = str(callback_query['message']['chat']['id'])

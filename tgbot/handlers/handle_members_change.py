@@ -11,7 +11,7 @@ def handle_join(msg):
 
     newcomer_id = str(msg['new_chat_member']['id'])
     if from_id == newcomer_id:
-        if len(actor['parents']) == 0 and chat_id != FEEDBACK_CHAT_ID:
+        if len(actor['parents']) == 0 and str(chat_id) != FEEDBACK_CHAT_ID:
             # показываем сообщение с кнопкой "поручиться"
             show_request_msg(msg)
 
@@ -27,9 +27,9 @@ def handle_join(msg):
         print(f'{len(msg["new_chat_members"])} members were invited by {from_id}')    
         for m in msg['new_chat_members']:
             newcomer = Profile.get(m['id'])
-            newcomer['parents'].append(from_id)
+            newcomer['parents'].append(str(from_id))
             Profile.save(newcomer)
-            actor['children'].append(m['id'])
+            actor['children'].append(str(m['id']))
             r = unmute_member(chat_id, newcomer['id'])
             print(r)
 

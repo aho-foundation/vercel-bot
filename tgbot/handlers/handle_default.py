@@ -32,10 +32,10 @@ def handle_default(msg):
                     owner_id = admin['user']['id']
                     break
             if owner_id:
-                sender['parents'].append(owner_id)
+                sender['parents'].append(str(owner_id))
                 # обновляем профиль владельца
                 owner = Profile.get(owner_id)
-                owner['children'].append(from_id)
+                owner['children'].append(str(from_id))
                 Profile.save(owner)
 
     # сохранить профиль отправителя
