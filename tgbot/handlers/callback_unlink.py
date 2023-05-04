@@ -25,7 +25,8 @@ def handle_unlink(payload):
     linked['parents'].remove(str(from_id))
     Profile.save(linked)
 
-    # удаляем старое сообщение с кнопками
+    
+    # удаляем старое сообщение с кнопками-unlink
     reply_msg_id = payload['message']['message_id']
     r = delete_message(from_id, reply_msg_id)
     print(r)
@@ -34,10 +35,11 @@ def handle_unlink(payload):
     if len(actor['children']) > 0:
         handle_command_my(payload)
 
-    # если больше никто не поручился - kick out
-    if len(linked['parents']) == 0:
-        lang = payload['from'].get('language_code', 'ru')
-        for chat_id in linked['chats']:
+    lang = payload['from'].get('language_code', 'ru')
+    for chat_id in linked['chats']:
+        
+        # если больше никто не поручился - kick out
+        if len(linked['parents']) == 0:
             r = kick_member(chat_id, linked_id)
             print(r)
             if r['ok']:
@@ -45,3 +47,8 @@ def handle_unlink(payload):
                 body = ('Участник %s%s был удалён' if lang == 'ru' else 'Member %s%s was deleted') % (identity, username)
                 r = send_message(chat_id, body)
                 print(r)
+
+        # обновление счётчика
+        update_button(linked_id, chat_id)
+    
+            

@@ -164,8 +164,10 @@ def get_userphotos(user_id):
 
 # https://core.telegram.org/bots/api#editmessagereplymarkup
 def edit_replymarkup(cid, mid, reply_markup):
-    url = apiBase + f"editMessageText?chat_id={cid}&message_id={mid}&reply_markup={text}"
-    r = requests.post(url)
+    reply_markup = json.dumps(reply_markup)
+    reply_markup = requests.utils.quote(reply_markup)
+    url = f"editMessageReplyMarkup?chat_id={cid}&message_id={mid}&reply_markup={reply_markup}"
+    r = requests.post(apiBase + url)
     return r.json()
 
 

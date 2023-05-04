@@ -1,5 +1,6 @@
 from tgbot.storage import scan, Profile
 from tgbot.api import approve_chat_join_request, kick_member
+from tgbot.handlers.callback_vouch import update_button
 from tgbot.utils.mention import userdata_extract
 
 # устанавливает соответствие данных
@@ -17,6 +18,7 @@ def handle_startup():
             # принять заявку если её нажимали
             r = approve_chat_join_request(chat_id, member_id)
             print(r)
+            update_button(chat_id, member_id)
         elif len(newcomer.get('parents', [])) == 0:
             r = kick_member(chat_id, member_id)
             print(r)

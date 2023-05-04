@@ -53,6 +53,7 @@ async def handle(req):
                     else:
                         handle_feedback(msg)
                 elif str(msg['chat']['id']) == FEEDBACK_CHAT_ID:
+                    print('feedback chat message')
                     if 'reply_to_message' in msg:
                         handle_answer(msg)
                     elif msg['text'] == '/graph':
@@ -83,7 +84,7 @@ async def handle(req):
         
         # wtf
         else:
-            print('UNHANDLED EVENT')
+            print('unhandled update')
 
     
     except Exception:

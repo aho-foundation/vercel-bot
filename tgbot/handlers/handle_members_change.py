@@ -1,5 +1,5 @@
 from tgbot.handlers.send_button import show_request_msg
-from tgbot.api import unmute_member, mute_member, delete_message
+from tgbot.api import delete_message
 from tgbot.storage import Profile, storage
 from tgbot.config import FEEDBACK_CHAT_ID
 
@@ -14,11 +14,6 @@ def handle_join(msg):
         if len(actor['parents']) == 0 and str(chat_id) != FEEDBACK_CHAT_ID:
             # показываем сообщение с кнопкой "поручиться"
             show_request_msg(msg)
-
-            # до одобрения - мьют
-            r = mute_member(chat_id, newcomer_id)
-            print(r)
-
         else:
             # за пользователя поручились ранее
             pass
@@ -30,9 +25,6 @@ def handle_join(msg):
             newcomer['parents'].append(str(from_id))
             Profile.save(newcomer)
             actor['children'].append(str(m['id']))
-            r = unmute_member(chat_id, newcomer['id'])
-            print(r)
-
         # обновляем профиль пригласившего
         Profile.save(actor)
 
